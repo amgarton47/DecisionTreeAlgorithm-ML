@@ -11,9 +11,9 @@ import ml.DataSet;
  * @author dkauchak
  *
  */
-public class RandomClassifier implements Classifier{
+public class RandomClassifier implements Classifier {
 	private Random rand = new Random();
-	
+
 	@Override
 	public void train(DataSet data) {
 		// easiest training method ever!
@@ -21,6 +21,6 @@ public class RandomClassifier implements Classifier{
 
 	@Override
 	public double classify(Example example) {
-            return rand.nextInt(2) == 0 ? 1 : -1;
+		return rand.nextInt(2) == 0 ? 1 : -1;
 	}
 }

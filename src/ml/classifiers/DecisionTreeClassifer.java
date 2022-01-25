@@ -8,38 +8,32 @@ import ml.DataSet;
 import ml.Example;
 
 public class DecisionTreeClassifer implements Classifier {
-	public DecisionTreeNode dtc;
-	private DataSet dataset = new DataSet("src/data/default.csv");
-//	DataSet dataset = new DataSet("src/data/titanic-train.csv");
-	private int depth = 100; // = dataset.getAllFeatureIndices().size();
+	private DecisionTreeNode dtc;
+	private DataSet dataset;
+	private int depth = -1;
 
 	public DecisionTreeClassifer() {
-
 	}
 
-	void setDepthLimit(int depth) {
-		this.depth = depth;
+	@Override
+	public void train(DataSet data) {
+		this.dataset = data;
+		dtc = trainRecursive(null, data.getData(), new HashSet<>(data.getAllFeatureIndices()), data.getData());
 	}
 
-	// helper function for base case where all remaining data has the same label
-	private boolean isSameLabel(ArrayList<Example> data) {
-		double firstLabel = data.get(0).getLabel();
+	private DecisionTreeNode trainRecursive(DecisionTreeNode dt, ArrayList<Example> data,
+			Set<Integer> remainingFeatures, ArrayList<Example> parentData) {
 
-		for (Example example : data) {
-			if (firstLabel != example.getLabel()) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	public DecisionTreeNode trainRecursive(DecisionTreeNode dt, ArrayList<Example> data,
-			Set<Integer> remainingFeatures) {
-
-		System.out.println("start");
-		if (isSameLabel(data)) {
-			System.out.println("bc1 reached: " + data.get(0).getLabel());
+		if (depth != -1 && (dataset.getAllFeatureIndices().size() - remainingFeatures.size() == depth)) {
+			return new DecisionTreeNode(getMajorityLabel(data));
+		} else if (data.size() == 0) {
+			return new DecisionTreeNode(getMajorityLabel(parentData));
+		} else if (isSameLabel(data)) {
 			return new DecisionTreeNode(data.get(0).getLabel());
+		} else if (sameFeatures(data)) {
+			return new DecisionTreeNode(getMajorityLabel(data));
+		} else if (remainingFeatures.size() == 0) {
+			return new DecisionTreeNode(getMajorityLabel(data));
 		}
 
 		// split data on "best" remaining feature and remove this feature from
@@ -47,7 +41,6 @@ public class DecisionTreeClassifer implements Classifier {
 		int splitFeature = calculateScore(data, new HashSet<>(remainingFeatures));
 		remainingFeatures.removeIf(feature -> feature == splitFeature);
 
-		System.out.println("feature " + splitFeature);
 		dt = new DecisionTreeNode(splitFeature);
 
 		ArrayList<Example> dataLeft = new ArrayList<Example>();
@@ -60,11 +53,31 @@ public class DecisionTreeClassifer implements Classifier {
 				dataRight.add(example);
 			}
 		}
-		
-		dt.setLeft(trainRecursive(dt, dataLeft, new HashSet<>(remainingFeatures)));
-		dt.setRight(trainRecursive(dt, dataRight, new HashSet<>(remainingFeatures)));
 
+		dt.setLeft(trainRecursive(dt, dataLeft, new HashSet<>(remainingFeatures), data));
+		dt.setRight(trainRecursive(dt, dataRight, new HashSet<>(remainingFeatures), data));
 		return dt;
+	}
+
+	@Override
+	public double classify(Example example) {
+		return classifyRecursive(example, dtc);
+	}
+
+	private double classifyRecursive(Example example, DecisionTreeNode root) {
+		if (root.isLeaf()) {
+			return root.prediction();
+		} else {
+			if (example.getFeature(root.getFeatureIndex()) == 0.0) {
+				return classifyRecursive(example, root.getLeft());
+			} else {
+				return classifyRecursive(example, root.getRight());
+			}
+		}
+	}
+
+	public void setDepthLimit(int depth) {
+		this.depth = depth;
 	}
 
 	// calculates the scores of the remaining features
@@ -101,54 +114,48 @@ public class DecisionTreeClassifer implements Classifier {
 				max = accuracy;
 				returnFeature = feature;
 			}
-
-			System.out.println("feature: " + feature + " accuracy: " + accuracy);
 		}
 
 		return returnFeature;
 	}
 
-	@Override
-	public void train(DataSet data) {
-//		Set<Integer> features = data.getAllFeatureIndices();
-//
-//		int startingFeature = calculateScore(data.getData(), features);
-//		features.removeIf(feature -> feature == startingFeature);
-//		Set<Integer> remaining = features;
+	private double getMajorityLabel(ArrayList<Example> data) {
+		int num0s = 0, num1s = 0;
 
-//		DecisionTreeNode root = new DecisionTreeNode(0);
-		dtc = trainRecursive(null, dataset.getData(), new HashSet<>(dataset.getAllFeatureIndices()));
+		for (Example example : data) {
+			if (example.getLabel() == -1.0) {
+				num0s++;
+			} else {
+				num1s++;
+			}
+		}
+		return num0s > num1s ? -1.0 : 1.0;
 	}
 
-	@Override
-	public double classify(Example example) {
-		return 0;
+	private boolean sameFeatures(ArrayList<Example> data) {
+		for (int i = 0; i < data.size() - 1; i++) {
+			if (!data.get(i).equalFeatures(data.get(i + 1))) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	// helper function for base case where all remaining data has the same label
+	private boolean isSameLabel(ArrayList<Example> data) {
+		double firstLabel = data.get(0).getLabel();
+
+		for (Example example : data) {
+			if (firstLabel != example.getLabel()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	@Override
 	public String toString() {
 		return dtc.treeString(dataset.getFeatureMap());
-	}
-
-	public DecisionTreeNode ret() {
-		return dtc;
-	}
-
-	public static void main(String[] args) {
-		DecisionTreeClassifer dt1 = new DecisionTreeClassifer();
-
-//		for (Example e : dt.dataset.getData()) {
-//			System.out.println(e);
-//		}
-		DataSet dataset = new DataSet("src/data/default.csv");
-		dt1.train(dataset);
-		DecisionTreeNode c = dt1.ret();
-		System.out.println(c.getFeatureIndex());
-//		System.out.println(c.getLeft().getLeft().getLeft().getLeft());
-//		System.out.println(c.getLeft().getLeft().getLeft().getLeft().getLeft());
-//		System.out.println(c.getLeft().getRight());
-//		System.out.println(c.getRight());
-		System.out.println(dt1);
-
 	}
 }
