@@ -155,6 +155,10 @@ public class DecisionTreeNode {
 			} else {
 				featureString = headers.get(featureIndex);
 			}
+			
+//			System.out.println("feature string: " + featureString);
+//			System.out.println(right.treeString());
+//			System.exit(0);
 
 			return "(" + featureString + "\n" + spaces + left.treeStringHelper(spaces + "  ", headers) + "\n" + spaces
 					+ right.treeStringHelper(spaces + "  ", headers) + ")";
