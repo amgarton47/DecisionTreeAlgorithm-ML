@@ -45,12 +45,13 @@ public class DecisionTreeClassifer implements Classifier {
 		// split data on "best" remaining feature and remove this feature from
 		// remainingFeatures
 		int splitFeature = calculateScore(data, new HashSet<>(remainingFeatures));
-		System.out.println(remainingFeatures.removeIf(feature -> feature == splitFeature));
+		remainingFeatures.removeIf(feature -> feature == splitFeature);
+
+		System.out.println("feature " + splitFeature);
+		dt = new DecisionTreeNode(splitFeature);
 
 		ArrayList<Example> dataLeft = new ArrayList<Example>();
 		ArrayList<Example> dataRight = new ArrayList<Example>();
-		
-		dt = new DecisionTreeNode(splitFeature);
 
 		for (Example example : data) {
 			if (example.getFeature(splitFeature) == 0.0) {
@@ -59,10 +60,7 @@ public class DecisionTreeClassifer implements Classifier {
 				dataRight.add(example);
 			}
 		}
-
-		System.out.println(dataLeft.size());
-		System.out.println(dataRight.size());
-
+		
 		dt.setLeft(trainRecursive(dt, dataLeft, new HashSet<>(remainingFeatures)));
 		dt.setRight(trainRecursive(dt, dataRight, new HashSet<>(remainingFeatures)));
 
@@ -72,8 +70,6 @@ public class DecisionTreeClassifer implements Classifier {
 	// calculates the scores of the remaining features
 	// returns the feature that should be split on based on train error
 	private int calculateScore(ArrayList<Example> data, Set<Integer> remainingFeatures) {
-		ArrayList<Double> accuracies = new ArrayList<Double>();
-
 		double max = 0.0;
 		int returnFeature = 0;
 
@@ -106,33 +102,22 @@ public class DecisionTreeClassifer implements Classifier {
 				returnFeature = feature;
 			}
 
-			accuracies.add(accuracy);
 			System.out.println("feature: " + feature + " accuracy: " + accuracy);
 		}
 
-		// identifies and returns the feature with the highest accuracy
-		// (lowest training error) for splitting
-//		double max = 0.0;
-//		int feature = 0;
-//		for (int i = 0; i < accuracies.size(); i++) {
-//			if (max < accuracies.get(i)) {
-//				max = accuracies.get(i);
-//				feature = remainingFeatures.toArray()[i].g;
-//			}
-//		}
-//
 		return returnFeature;
 	}
 
 	@Override
 	public void train(DataSet data) {
-		Set<Integer> features = data.getAllFeatureIndices();
+//		Set<Integer> features = data.getAllFeatureIndices();
+//
+//		int startingFeature = calculateScore(data.getData(), features);
+//		features.removeIf(feature -> feature == startingFeature);
+//		Set<Integer> remaining = features;
 
-		int startingFeature = calculateScore(data.getData(), features);
-		features.removeIf(feature -> feature == startingFeature);
-		Set<Integer> remaining = features;
-		DecisionTreeNode root = new DecisionTreeNode(startingFeature);
-		dtc = trainRecursive(root, dataset.getData(), remaining);
+//		DecisionTreeNode root = new DecisionTreeNode(0);
+		dtc = trainRecursive(null, dataset.getData(), new HashSet<>(dataset.getAllFeatureIndices()));
 	}
 
 	@Override
@@ -164,5 +149,6 @@ public class DecisionTreeClassifer implements Classifier {
 //		System.out.println(c.getLeft().getRight());
 //		System.out.println(c.getRight());
 		System.out.println(dt1);
+
 	}
 }
