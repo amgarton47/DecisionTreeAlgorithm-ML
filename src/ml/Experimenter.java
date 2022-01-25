@@ -28,7 +28,7 @@ public class Experimenter {
 
 	public static void main(String[] args) {
 		final int NUM_TRIALS = 100;
-		final int DEPTH = 2;
+		final int DEPTH = 4;
 		
 		String pathToDataset = "src/data/titanic-train.csv";
 		DataSet dataset = new DataSet(pathToDataset);
