@@ -8,7 +8,7 @@ import ml.DataSet;
 import ml.Example;
 
 /**
- * CS158-PO - Machine Learning Assignment 02
+ * CS158-PO - Machine Learning: Assignment 02
  * 
  * A decision tree classifier for making predictions after training on labeled
  * data.
@@ -20,6 +20,7 @@ public class DecisionTreeClassifier implements Classifier {
 	private DecisionTreeNode dtc;
 	private DataSet dataset;
 	private int depth = -1;
+	private boolean useGini = false;
 
 	public DecisionTreeClassifier() {
 	}
@@ -70,7 +71,13 @@ public class DecisionTreeClassifier implements Classifier {
 
 		// split data on "best" remaining feature and remove this feature from
 		// remainingFeatures
-		int splitFeature = calculateScore(data, new HashSet<>(remainingFeatures));
+		int splitFeature;
+
+		if (useGini) {
+			splitFeature = getGiniImpurity(data, new HashSet<>(remainingFeatures));
+		} else {
+			splitFeature = calculateScore(data, new HashSet<>(remainingFeatures));
+		}
 		remainingFeatures.removeIf(feature -> feature == splitFeature);
 
 		dt = new DecisionTreeNode(splitFeature);
@@ -90,6 +97,67 @@ public class DecisionTreeClassifier implements Classifier {
 		dt.setLeft(trainRecursive(dt, dataLeft, new HashSet<>(remainingFeatures), data));
 		dt.setRight(trainRecursive(dt, dataRight, new HashSet<>(remainingFeatures), data));
 		return dt;
+	}
+
+	private int getGiniImpurity(ArrayList<Example> data, Set<Integer> features) {
+
+		int retFeature = (int) features.toArray()[0];
+		for (int feature : features) {
+			double maxImpurity = 1;
+
+			ArrayList<Example> left = new ArrayList<Example>();
+			ArrayList<Example> right = new ArrayList<Example>();
+
+			for (Example ex : data) {
+				if (ex.getFeature(feature) == 0.0) {
+					left.add(ex);
+				} else {
+					right.add(ex);
+				}
+			}
+
+			int count1left = 0;
+			for (Example ex : left) {
+				if (ex.getFeature(feature) == 0.0) {
+					count1left++;
+				}
+			}
+
+			int count1right = 0;
+			for (Example ex : right) {
+				if (ex.getFeature(feature) == 0.0) {
+					count1right++;
+				}
+			}
+
+			double p1, p2;
+
+			if (left.size() == 0) {
+				p1 = 0;
+			} else {
+				p1 = count1left / left.size();
+			}
+
+			if (right.size() == 0) {
+				p2 = 0;
+			} else {
+				p2 = count1right / right.size();
+			}
+
+			double giniLeft = 1 - p1 * p1 - (1 - p1) * (1 - p1);
+			double giniRight = 1 - p2 * p2 - (1 - p2) * (1 - p2);
+
+			giniLeft *= (left.size() / data.size());
+			giniRight *= (right.size() / data.size());
+
+			double gini = giniLeft + giniRight;
+
+			if (gini < maxImpurity) {
+				retFeature = feature;
+			}
+
+		}
+		return retFeature;
 	}
 
 	@Override
@@ -127,6 +195,10 @@ public class DecisionTreeClassifier implements Classifier {
 	 */
 	public void setDepthLimit(int depth) {
 		this.depth = depth;
+	}
+	
+	public void setGini(boolean gini) {
+		useGini = gini;
 	}
 
 	/**
@@ -173,7 +245,6 @@ public class DecisionTreeClassifier implements Classifier {
 				returnFeature = feature;
 			}
 		}
-
 		return returnFeature;
 	}
 
@@ -208,7 +279,6 @@ public class DecisionTreeClassifier implements Classifier {
 				return false;
 			}
 		}
-
 		return true;
 	}
 
@@ -239,7 +309,7 @@ public class DecisionTreeClassifier implements Classifier {
 
 	// simple code to test our implementation
 	public static void main(String[] args) {
-		final String pathToDataset = "src/data/titanic-train.csv";
+		final String pathToDataset = "src/data/default.csv";
 		DataSet dataset = new DataSet(pathToDataset);
 
 		DecisionTreeClassifier dt = new DecisionTreeClassifier();

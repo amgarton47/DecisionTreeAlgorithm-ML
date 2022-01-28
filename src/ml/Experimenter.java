@@ -5,7 +5,7 @@ import ml.classifiers.DecisionTreeClassifier;
 import ml.classifiers.RandomClassifier;
 
 /**
- * CS158-PO - Machine Learning Assignment 02
+ * CS158-PO - Machine Learning Assignment: 02
  * 
  * A class to experiment on the accuracy of our model as well as its
  * hyper-parameters.
@@ -53,6 +53,7 @@ public class Experimenter {
 	public static void main(String[] args) {
 		final int NUM_TRIALS = 100;
 		final String pathToDataset = "src/data/titanic-train.csv";
+		final boolean USE_GINI = true;
 
 		DataSet dataset = new DataSet(pathToDataset);
 
@@ -66,6 +67,7 @@ public class Experimenter {
 			System.out.print("Depth = " + i + ": ");
 			DecisionTreeClassifier dt = new DecisionTreeClassifier();
 			dt.setDepthLimit(i);
+			dt.setGini(USE_GINI);
 			double[] results = runXTrials(dataset, dt, NUM_TRIALS, 0.8);
 			System.out.print(" " + results[0] + "\\% & ");
 			System.out.println(" " + results[1] + "\\%");
@@ -78,6 +80,7 @@ public class Experimenter {
 			System.out.print("split fraction = " + splitFrac + ": ");
 			DecisionTreeClassifier dt = new DecisionTreeClassifier();
 			dt.setDepthLimit(-1);
+			dt.setGini(USE_GINI);
 			double[] results = runXTrials(dataset, dt, NUM_TRIALS, splitFrac);
 			System.out.print(" " + results[0] + "\\% &");
 			System.out.println(" " + results[1] + "\\%");
@@ -85,6 +88,11 @@ public class Experimenter {
 			splitFrac = Math.floor(splitFrac * 100) / 100;
 		}
 
+		DecisionTreeClassifier dt = new DecisionTreeClassifier();
+		dt.setDepthLimit(5);
+		dt.setGini(USE_GINI);
+		System.out.println(runXTrials(dataset, dt, NUM_TRIALS, 0.8)[1]);
+		
 //		System.out.println(dt);
 	}
 
