@@ -53,19 +53,14 @@ public class DecisionTreeClassifier implements Classifier {
 			Set<Integer> remainingFeatures, ArrayList<Example> parentData) {
 
 		if (depth != -1 && (dataset.getAllFeatureIndices().size() - remainingFeatures.size() == depth)) {
-//			System.out.println("reached bc1");
 			return new DecisionTreeNode(getMajorityLabel(data));
 		} else if (data.size() == 0) {
-//			System.out.println("reached bc2");
 			return new DecisionTreeNode(getMajorityLabel(parentData));
 		} else if (isSameLabel(data)) {
-//			System.out.println("reached bc3");
 			return new DecisionTreeNode(data.get(0).getLabel());
 		} else if (sameFeatures(data)) {
-//			System.out.println("reached bc4");
 			return new DecisionTreeNode(getMajorityLabel(data));
 		} else if (remainingFeatures.size() == 0) {
-//			System.out.println("reached bc5");
 			return new DecisionTreeNode(getMajorityLabel(data));
 		}
 
@@ -74,9 +69,9 @@ public class DecisionTreeClassifier implements Classifier {
 		int splitFeature;
 
 		if (useGini) {
-			splitFeature = getGiniImpurity(data, new HashSet<>(remainingFeatures));
+			splitFeature = getFeatureByGini(data, remainingFeatures);
 		} else {
-			splitFeature = calculateScore(data, new HashSet<>(remainingFeatures));
+			splitFeature = getFeatureByTrainError(data, remainingFeatures);
 		}
 		remainingFeatures.removeIf(feature -> feature == splitFeature);
 
@@ -99,8 +94,15 @@ public class DecisionTreeClassifier implements Classifier {
 		return dt;
 	}
 
-	private int getGiniImpurity(ArrayList<Example> data, Set<Integer> features) {
-
+	/**
+	 * Extra credit: Implementation of information gain using gini impurity. Returns
+	 * the "best" feature to split on according to the gini method.
+	 * 
+	 * @param data     - data remaining
+	 * @param features -
+	 * @return
+	 */
+	private int getFeatureByGini(ArrayList<Example> data, Set<Integer> features) {
 		int retFeature = (int) features.toArray()[0];
 		for (int feature : features) {
 			double maxImpurity = 1;
@@ -108,6 +110,7 @@ public class DecisionTreeClassifier implements Classifier {
 			ArrayList<Example> left = new ArrayList<Example>();
 			ArrayList<Example> right = new ArrayList<Example>();
 
+			// split the data on feature
 			for (Example ex : data) {
 				if (ex.getFeature(feature) == 0.0) {
 					left.add(ex);
@@ -116,6 +119,7 @@ public class DecisionTreeClassifier implements Classifier {
 				}
 			}
 
+			// count label0 for left subtree
 			int count1left = 0;
 			for (Example ex : left) {
 				if (ex.getFeature(feature) == 0.0) {
@@ -123,6 +127,7 @@ public class DecisionTreeClassifier implements Classifier {
 				}
 			}
 
+			// count label0 for left subtree
 			int count1right = 0;
 			for (Example ex : right) {
 				if (ex.getFeature(feature) == 0.0) {
@@ -130,6 +135,7 @@ public class DecisionTreeClassifier implements Classifier {
 				}
 			}
 
+			// get proportion of label in left/right subtrees
 			double p1, p2;
 
 			if (left.size() == 0) {
@@ -144,14 +150,17 @@ public class DecisionTreeClassifier implements Classifier {
 				p2 = count1right / right.size();
 			}
 
+			// calculate gini index for both subtrees
 			double giniLeft = 1 - p1 * p1 - (1 - p1) * (1 - p1);
 			double giniRight = 1 - p2 * p2 - (1 - p2) * (1 - p2);
 
+			// weight scores by proportion of data in each tree
 			giniLeft *= (left.size() / data.size());
 			giniRight *= (right.size() / data.size());
 
 			double gini = giniLeft + giniRight;
 
+			// set retTeature to feature that yields lowest impurity index
 			if (gini < maxImpurity) {
 				retFeature = feature;
 			}
@@ -172,9 +181,9 @@ public class DecisionTreeClassifier implements Classifier {
 	 * the value of the provided example's features. Will traverse right subtree if
 	 * non-zero valued feature, traverses left subtree otherwise
 	 * 
-	 * @param example
-	 * @param root
-	 * @return
+	 * @param example - data example to classify
+	 * @param root    - the decision tree model
+	 * @return - the classifaction of example
 	 */
 	private double classifyRecursive(Example example, DecisionTreeNode root) {
 		if (root.isLeaf()) {
@@ -196,7 +205,12 @@ public class DecisionTreeClassifier implements Classifier {
 	public void setDepthLimit(int depth) {
 		this.depth = depth;
 	}
-	
+
+	/**
+	 * Simple setter method for whether or not to use gini as splitting criterion
+	 * 
+	 * @param gini - true sets gini on and false sets gini off
+	 */
 	public void setGini(boolean gini) {
 		useGini = gini;
 	}
@@ -211,7 +225,7 @@ public class DecisionTreeClassifier implements Classifier {
 	 * @return - the index of the feature with the highest score (lowest train
 	 *         error)
 	 */
-	private int calculateScore(ArrayList<Example> data, Set<Integer> remainingFeatures) {
+	private int getFeatureByTrainError(ArrayList<Example> data, Set<Integer> remainingFeatures) {
 		double max = 0.0;
 		int returnFeature = 0;
 
@@ -282,8 +296,6 @@ public class DecisionTreeClassifier implements Classifier {
 		return true;
 	}
 
-	//
-
 	/**
 	 * Helper function for base case where all remaining data has the same label
 	 * 
@@ -310,10 +322,12 @@ public class DecisionTreeClassifier implements Classifier {
 	// simple code to test our implementation
 	public static void main(String[] args) {
 		final String pathToDataset = "src/data/default.csv";
+//		final String pathToDataset = "src/data/titanic-train.csv";
 		DataSet dataset = new DataSet(pathToDataset);
 
 		DecisionTreeClassifier dt = new DecisionTreeClassifier();
 		dt.setDepthLimit(-1);
+		dt.setGini(false);
 
 		dt.train(dataset);
 		System.out.println(dt);
